@@ -1,0 +1,31 @@
+name: Push Docker Image
+
+on:
+  release:
+    types: [published]
+  
+env:
+  IMAGE_NAME: "${{ github.repository_owner }}"
+  IMAGE_ID: "ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME"
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Build Image
+        run: docker build --file Dockerfile --tag $IMAGE_NAME .
+      - name: Push Image
+        run: |
+          # Strip git ref prefix from version
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          # Strip "v" prefix from tag name
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION
+
+          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+          docker push $IMAGE_ID:$VERSION
